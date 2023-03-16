@@ -5,6 +5,7 @@
 #host側の実装
 
 import sys
+import datetime
 import time
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
@@ -43,7 +44,8 @@ def on_message_host(client, userdata, message):
     message_json = nakami.decode('utf-8')                #受信データはバイト列なのでそれを文字列に変換する
     print (message_json)
     print('受信')
-    client.publish(pub_topic, 'reply')
+    time_now = datetime.datetime.now().isoformat()
+    client.publish(pub_topic, time_now)
     print('送信')
     #print (type(message_json))
 

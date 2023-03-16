@@ -5,6 +5,8 @@
 #enddevice側の実装
 
 import sys
+import os
+import datetime
 import time
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
@@ -20,7 +22,7 @@ bEnableLog = False
 bEnableErrMsg = False
 
 #グローバル変数
-test_message = 'hoge'
+time_offset = 0
 reply_topic = 'initial'
 
 
@@ -41,12 +43,16 @@ def on_message_enddevice(client, userdata, message):
     replyno = reply_topic.split('/')[-2]
     print(replyno)
     if int(replyno) == attemptno:
-        nakami = message.payload
-        message_json = nakami.decode('utf-8')                #受信データはバイト列なのでそれを文字列に変換する
+        message_body = message.payload
+        message_decode = message_body.decode('utf-8')                #受信データはバイト列なのでそれを文字列に変換する
         #print (message_json)
         #client.loop_stop()
-        global test_message
-        test_message = message_json
+        global time_offset
+        time_by_host = datetime.datetime.fromisoformat(message_decode)
+        rec_time = datetime.datetime.now()
+        time_offset = time_by_host - rec_time
+        #print(time_offset)
+        print(rec_time.isoformat())
         #client.loop_stop()                                   #今回は1回受信すればいいので受信したら閉じる
         print('正常受信')
         #print (type(message_json))
@@ -76,22 +82,23 @@ client_sub.connect(host, port=port, keepalive=60)
 print('test1')
 client_sub.loop_start()
 
-while test_message == 'hoge':
+while time_offset == 0:
     if attemptno > 9:
         sys.stderr.write('failed')
         sys.exit(1)
     print('attempt {}'.format(attemptno))
-    test_message = 'hoge'
     client_sub = mqtt.Client(protocol=mqtt.MQTTv311)
     client_sub.topic = sub_topic         #on_connectでsubscribeする
     client_sub.on_connect = on_connect
     client_sub.on_message = on_message_enddevice
     client_sub.connect(host, port=port, keepalive=60)
+    req_time = datetime.datetime.now()
+    print(req_time.isoformat())
     publishrequest(client_pub, attemptno)
-    time.sleep(1.0)    #受信にかかる時間は2秒まで許容
+    time.sleep(1.0)    #受信にかかる時間は1秒まで許容
     attemptno += 1
 
 
 time.sleep(0.2)
 #time.sleep(0.2)
-print(test_message)
+print(time_offset)
