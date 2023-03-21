@@ -9,7 +9,7 @@ import csv
 #import partcsv
 
 #for MQTT broker
-MQTT_HOST = '192.168.11.4'
+MQTT_HOST = '127.0.0.1'
 MQTT_PORT = 1883
 KEEP_ALIVE = 60
 TOPIC = 'TWELITE/#'
