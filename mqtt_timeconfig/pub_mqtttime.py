@@ -71,20 +71,22 @@ def ParseArgs():
 
 if __name__ == '__main__':
     #mqtt接続情報(timesync)
-    timesync_host = '127.0.0.1'      
+    timesync_host = '192.168.11.10'      
     port = 1883
     timesync_topic = 'hoge/'    #ラズパイを特定できるものならなんでもいい（datapublishと統一してもいいかも）
 
 
     print("***Start timesync***")
     time_offset = mqttsettime.mqttsettime(timesync_host, timesync_topic)
-    print(time_offset)
+    new_time = datetime.datetime.now() + time_offset 
+    #print(time_offset)
+    print("new time:" + str(new_time))
     print("***Finished timesync***")
 
 
 
     # mqtt 接続(datapublish)----------------------------------------------------------
-    host = '127.0.0.1'
+    host = '192.168.11.10'
     port = 1883
     pino = 1
     topic = 'TWELITE/' + str(pino)
@@ -109,7 +111,7 @@ if __name__ == '__main__':
 
     #CSVを開く
 
-    log_name = str(datetime.datetime.now().strftime('%Y-%m-%d-%H-%M')) +'(' + str(random.randint(100,999)) +').csv'
+    log_name = str(new_time.strftime('%Y-%m-%d-%H-%M')) +'(' + str(random.randint(100,999)) +').csv'
 
     print(log_name)
 
