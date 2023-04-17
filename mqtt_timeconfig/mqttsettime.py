@@ -76,10 +76,11 @@ def mqttsettime(host, topic):
     client.on_connect = on_connect
     client.on_message = on_message_enddevice
     client.connect(host, port=port, keepalive=60)
-    print('test1')
+    #print('test1')
     client.loop_start()
 
     attemptno = 1
+    time.sleep(0.1) #入れたほうが安定？
     while time_offset == 0:
         if attemptno > 9:        #10回までチェック
             sys.stderr.write('failed')
