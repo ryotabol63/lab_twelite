@@ -8,11 +8,11 @@ def make_portlist():
     #MONOSTICKが接続されていると思われるポート一覧を取得
     list = serial.tools.list_ports.comports()
     portlist_valid = []
-    for i in list:
-        if 'USB Serial Port' in i.description:
+    for p in list:
+        if 'USB Serial Port' in p.description:
             #シリアルポート≒MONOSTICKのみをポートリストに追加する
-            portlist_valid.append(i)
-        #print(str(i)[6:])
+            portlist_valid.append(p)
+        #print(str(p)[6:])
     #print(portlist_valid)
     return portlist_valid
 
@@ -48,20 +48,23 @@ if __name__ == '__main__':
         sys.exit(1)
         
     #保存ファイル名作成
-    time = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = "port_" + ports[portnum].device +"_" +  time + ".csv" 
+    file_make_time = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = "port_" + ports[portnum].device +"_" + file_make_time + ".csv" 
     print(filename)
 
     #ここから値取得・書き込み
-    with open(filename, 'a') as out_f:
-        while 1:
+    while 1:
+        with open(filename, 'a', newline='\n') as out_f:
+            #データを書き込むときに逐一ファイルを開け閉めする
             try:
-                line = ser.readline().decode('utf-8')
                 #バイナリをデコードする
+                line = ser.readline().decode('utf-8')
                 #print(line)
                 #取得データがつながってしまっている場合は":"で分割
                 line_split = line.split(sep= ':')
-                #print(line_split)
+                if len(line_split) == 2:        #つながっているデータを”：”で分割
+                    datatype_flag = 0               #もともとのPAL_Scriptでもとれるもの
+                else: datatype_flag = 1             #今回の改変によって取れるようになったもの
                 
                 for log in line_split:
                     print(len(log))
@@ -73,10 +76,17 @@ if __name__ == '__main__':
                         tag = log[14:22]               #タグ番号
                         print(tag)
                         if tag[0:2] == '82':#MONOSTICKからのデータであることを判定
-                            nowtime= datetime.datetime.now().strftime('%Y%m%d_%H:%M:%S.%f')[:-3]
                             #データを処理した時間
-                            #※要改善（つながってたデータを処理した場合、時間は受信時刻ではなく、つながりを解消して書き込んだ時間）
-                            out_f.write(nowtime + ',' + tag + ',' + str(postnum) + ',' + str(lqi) + '\n')
+                            #※要改善（つながってたデータを処理した場合、現状の時間は受信時刻ではなく、つながりを解消して書き込んだ時間）
+                            nowtime= datetime.datetime.now().strftime('%Y%m%d_%H:%M:%S.%f')[:-3]
+                            output_data = [nowtime, tag, str(postnum), str(lqi)]
+                            
+                            #debug(ファイル改変によって取れるようになったデータかどうかのフラグを付与する)
+                            output_data.append(str(datatype_flag))
+
+                            #各データごとに改行するための改行文字
+                            output_data.append('\n')
+                            out_f.write(','.join(output_data))
                             #書き込み
             except UnicodeDecodeError:
                 #ごくまれにdecodeでエラーが起こる（その場合はpass）
