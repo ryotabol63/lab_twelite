@@ -4,6 +4,11 @@ import serial.tools.list_ports
 import sys
 import datetime
 
+
+#設定
+baudrate = 38400
+
+
 def make_portlist():
     #MONOSTICKが接続されていると思われるポート一覧を取得
     list = serial.tools.list_ports.comports()
@@ -40,7 +45,7 @@ if __name__ == '__main__':
     
     #ここからポート開く
     try:
-        ser = serial.Serial(ports[portnum].device, baudrate= 38400)
+        ser = serial.Serial(ports[portnum].device, baudrate= baudrate, timeout= 1.0)
         print(f"open {ports[portnum].device}")
     except:
         #開けなかった場合
@@ -53,12 +58,14 @@ if __name__ == '__main__':
     print(filename)
 
     #ここから値取得・書き込み
-    while 1:
-        with open(filename, 'a', newline='\n') as out_f:
-            #データを書き込むときに逐一ファイルを開け閉めする
-            try:
+    try:
+        while 1:
+            with open(filename, 'a', newline='\n') as out_f:
+                #データを書き込むときに逐一ファイルを開け閉めする
                 #バイナリをデコードする
                 line = ser.readline().decode('utf-8')
+                if len(line) == 0:
+                    continue
                 #print(line)
                 #取得データがつながってしまっている場合は":"で分割
                 line_split = line.split(sep= ':')
@@ -88,11 +95,11 @@ if __name__ == '__main__':
                             output_data.append('\n')
                             out_f.write(','.join(output_data))
                             #書き込み
-            except UnicodeDecodeError:
-                #ごくまれにdecodeでエラーが起こる（その場合はpass）
-                pass
-            except KeyboardInterrupt:
-                #ctrl+cで終了
-                ser.close()
-                print("finished")
-                sys.exit(0)
+    except UnicodeDecodeError:
+        #ごくまれにdecodeでエラーが起こる（その場合はpass）
+        pass
+    except KeyboardInterrupt:
+        #ctrl+cで終了
+        ser.close()
+        print("finished")
+        sys.exit(0)
