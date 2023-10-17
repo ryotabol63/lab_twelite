@@ -21,6 +21,15 @@ def make_portlist():
     #print(portlist_valid)
     return portlist_valid
 
+def sc16x4_2_int(hex):
+    b = int(hex,16)  #16進数strをint型にキャスト
+    return -(b & 0b1000000000000000) | (b& 0b0111111111111111)
+#解説（備忘録）：(b & 0b1000000000000000)部分->正の数なら0負なら0b1000000000000000になる
+#(b& 0b0111111111111111)は絶対値を抽出
+# 式に-が入っていることでこのビット演算->整数化の過程は符号付intとして行われる
+#あとは左結合でビット演算
+
+
 if __name__ == '__main__':
     ports = make_portlist()
     #ポートリストをprint
@@ -57,6 +66,12 @@ if __name__ == '__main__':
     filename = "port_" + ports[portnum].device +"_" + file_make_time + ".csv" 
     print(filename)
 
+    #ヘッダ書き込み
+    header = ["time", "tag", "Number", "LQI", "xacc", "yacc", "zacc", "datatype", "\n"]
+    with open(filename, 'a', newline='\n') as out_f:
+        out_f.write(','.join(header))
+
+
     #ここから値取得・書き込み
     try:
         while 1:
@@ -73,20 +88,30 @@ if __name__ == '__main__':
                     datatype_flag = 0               #もともとのPAL_Scriptでもとれるもの
                 else: datatype_flag = 1             #今回の改変によって取れるようになったもの
                 
-                for log in line_split:
-                    print(len(log))
-                    if len(log) > 31:
+                for tag_log in line_split:
+                    print(len(tag_log))
+                    if len(tag_log) > 31:
                         #必要な情報が入っている最低の長さ
-                        lqi = int(log[22:24], 16)    #電波強度
+                        lqi = int(tag_log[22:24], 16)    #電波強度
                         print(lqi)
-                        postnum = int(log[28:32],16) #送信番号
-                        tag = log[6:14]               #タグ番号
-                        print(tag)
-                        if tag[0:2] == '82':#MONOSTICKからのデータであることを判定
+                        postnum = int(tag_log[28:32],16) #送信番号
+                        tag_id = tag_log[6:14]               #タグ番号
+                        print(tag_id)
+                        if tag_id[0:2] == '82':#MONOSTICKからのデータであることを判定
                             #データを処理した時間
                             #※要改善（つながってたデータを処理した場合、現状の時間は受信時刻ではなく、つながりを解消して書き込んだ時間）
                             nowtime= datetime.datetime.now().strftime('%Y%m%d_%H:%M:%S.%f')[:-3]
-                            output_data = [nowtime, tag, str(postnum), str(lqi)]
+                            output_data = [nowtime, tag_id, str(postnum), str(lqi)]
+
+                            if len(tag_log) > 43: #加速度までちゃんと取れている
+                                acc_x_ave = sc16x4_2_int(tag_log[32:36])
+                                acc_y_ave = sc16x4_2_int(tag_log[36:40])
+                                acc_z_ave = sc16x4_2_int(tag_log[40:44])
+                                #print((acc_x_ave,acc_y_ave,acc_z_ave))
+                                output_data += [str(acc_x_ave), str(acc_y_ave), str(acc_z_ave)]
+
+                            else:
+                                output_data += ["Nan", "Nan", "Nan"]   #加速度をNaNでうめる（処理都合）  
                             
                             #debug(ファイル改変によって取れるようになったデータかどうかのフラグを付与する)
                             output_data.append(str(datatype_flag))
