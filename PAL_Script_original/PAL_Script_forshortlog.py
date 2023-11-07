@@ -97,10 +97,11 @@ if __name__ == '__main__':
                         postnum = int(tag_log[28:32],16) #送信番号
                         tag_id = tag_log[6:14]               #タグ番号
                         print(tag_id)
+                        print(postnum)
                         if tag_id[0:2] == '82':#MONOSTICKからのデータであることを判定
                             #データを処理した時間
                             #※要改善（つながってたデータを処理した場合、現状の時間は受信時刻ではなく、つながりを解消して書き込んだ時間）
-                            nowtime= datetime.datetime.now().strftime('%Y%m%d_%H:%M:%S.%f')[:-3]
+                            nowtime= datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S.%f')[:-3]
                             output_data = [nowtime, tag_id, str(postnum), str(lqi)]
 
                             if len(tag_log) > 43: #加速度までちゃんと取れている
