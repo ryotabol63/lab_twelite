@@ -464,8 +464,10 @@ def coordinate(pn,coordinatexy):     #ここで座標を入力
 
 
 
-def animation_write(taglist):
+def animation_write(tagid, savestyle, animation_file_name):
 
+    #singletagの場合はrandいらない
+    """
     tagrand = []
     for tag in taglist:
         theta = 2.0 * math.pi * random.random()
@@ -475,6 +477,8 @@ def animation_write(taglist):
         tagrand.append((xrand, yrand))
 
     #print(tagrand)        #taglistの順番と対応している
+
+    """
 
         
 
@@ -491,7 +495,6 @@ def animation_write(taglist):
     location_list = [0 for i in range(used_pinm)]
     #print(location_list)
     location_by_time = []
-    location_by_tag = [-1 for i in range(len(taglist))]
 
     fig = plt.figure()
     plt.subplot(111)
@@ -513,17 +516,19 @@ def animation_write(taglist):
 
     #円ここまで
 
-    r1x = np.linspace(0,10,N)
+    
     #r2x = np.linspace(10,16,N)
-    ry = np.linspace(1,9,100)
     #slackline用の黒線
+    ry = np.linspace(1,9,100)
     for xn in (12,15):
         rrx = np.linspace(xn,xn,100)
         plt.plot(rrx,ry,color= 'black')
     #zipline用の黒線
+    r1x = np.linspace(0,10,N)
     rry = np.linspace(2.5,2.5,N)
     plt.plot(r1x,rry,color= 'black')
-    plt.text(3,3.5,'Zipline')
+    #場所のテキスト
+    plt.text(3,1.8,'Zipline')
     plt.text(12,5,'Slacklines')
     plt.text(4,7,'Athletics')
     #plt.xlabel('X',fontsize=18)
@@ -532,76 +537,78 @@ def animation_write(taglist):
     plt.ylim(0,16)              #描画領域(y)
     location_list =[]
     change_list = []
+
+    #ベクトルのリスト
+    quiver_displacement_list = []
+    for i in range(0,used_pinm):
+        displacement = []
+        for k in range(0,used_pinm):
+            displacement.append((coordinatexy[k][0] - coordinatexy[i][0], coordinatexy[k][1] - coordinatexy[i][1]))
+        quiver_displacement_list.append(displacement)
+    print(quiver_displacement_list)
+
+    #描画データ保存用リスト(毎回更新されるもの)
+    p = []
+    #updateで毎回更新されるもの
+    pi_countlist = [0,0,0,0,0]
+    pi_movecountlist = [[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]]
+    #pi[n]からpi[m]への移動をpimovecount[n-1][m-1]に記録する
+
+    #描画すべきベクトルの（太さ）のリスト
     quiver_list = []
 
-    for location in location_datas:
-        if not location[0] == cur_time:
-            #前の時間のデータを保存
-            location_by_time.append([cur_time,location_list,change_list])
-            cur_time = location[0]
-            location_list = []
-            change_list = []
+    def pimove(movefrom, moveto):
+        pi_movecountlist[movefrom-1][moveto-1] += 1
 
-
-        pino = int(float(location[1])) - 1
-        cur_tagid = location[2]
-        tag_index = taglist.index(cur_tagid)
-        prev_location = location_by_tag[tag_index]
-        if (prev_location >=0) and (prev_location != pino):
-            #位置の移動がある場合(矢羽根を書きたい)
-            change_list.append([cur_tagid, prev_location, pino])
-            #タグID,前の場所,移動先
-            #print('change')
-            
-        location_by_tag[tag_index] = pino
-        #print(pino)
-        location_list.append([cur_tagid,pino])
-    #print(location_by_time)
-
-    '''
-
-    xrand = []
-    yrand = []
-    for i in range(used_pinm):
-        xa = []
-        ya = []
-        for n in range(50):
-            theta = 2.0 * math.pi * random.random()
-            radius = math.sqrt(random.random())
-            xa.append(0.8 * radius * math.cos(theta))
-            ya.append(0.8 * radius * math.sin(theta))
-        xrand.append(xa)
-        yrand.append(ya)
-    '''
-    p = []
+    #移動有無判定の初期値
+    global tag_location 
+    tag_location = -1
 
     #print(coordinatexy)
     def update(frame):
+        #毎回の更新用
+        global tag_location
         #print(p)
         while p != []:
+            #前回描画のリセット
             #print(p)
             #print(len(p))
             rem = p.pop(0)
             rem.remove()
         #print(p)
         #print(frame[0])
-        p.append(plt.text(12,14, frame[0]))
-        plt_x = []
-        plt_y = []
-        for printtag in frame[1]:    #タグの場所の描画
-            tag_index = taglist.index(printtag[0])
-            cur_rand = tagrand[tag_index]
-            plt_x.append(coordinatexy[printtag[1]][0] + cur_rand[0])
-            plt_y.append(coordinatexy[printtag[1]][1] + cur_rand[1])
-        if plt_x != []:
-            #print(plt_x)
-            p.extend(plt.plot(plt_x, plt_y, 's', color='red',markersize=5, aa=True))   #pltplotはリストなのでextend
+        cur_time = frame[0]
+        new_tag_location = int(float(frame[1])) - 1
+        moveflag = False    #デフォルトは移動なし
+        if tag_location != new_tag_location:#現在と一つ前のtagが違う（移動）の場合
+            if tag_location != -1:#初期値を排除
+                moveflag = True
+                #位置の移動がある場合(矢羽根用のデータ収録)
+                quiver_x , quiver_y = quiver_displacement_list[tag_location][new_tag_location]
+                p.append(plt.quiver(coordinatexy[tag_location][0], coordinatexy[tag_location][1], quiver_x, quiver_y, scale_units = 'xy',scale = 1, color= 'blue', width = 0.01))
+                movedetail = (tag_location, new_tag_location)
+            tag_location = new_tag_location
+
+        #共通処理
+        pi_countlist[tag_location] += 1     #そのタグを踏んだ回数
+        for i in range(0,len(pi_countlist)):
+            p.append(plt.text(coordinatexy[i][0]+1.0, coordinatexy[i][1]+0.7, str(pi_countlist[i])))#踏んだ回数の表示
+        p.append(plt.text(12,14, frame[0]))     #時間
+        #タグのプロット
+        p.extend(plt.plot(coordinatexy[tag_location][0], coordinatexy[tag_location][1], 's', color='red',markersize=5, aa=True))   #pltplotはリストなのでextend
+        if moveflag:    #移動がある場合
+            pass
+
+        
+
+        """
         #既存の矢印を描画
         if len(quiver_list) != 0:
             for quiver in quiver_list:
                 p.append(plt.quiver(quiver[0], quiver[1], quiver[2], quiver[3], scale_units = 'xy',scale = 1, color= 'gray', width = 0.005))
 
         for changetag in frame[2]:
+            #位置変更があった場合
             tag_index = taglist.index(changetag[0])
             cur_rand = tagrand[tag_index]
             quiver_x = coordinatexy[changetag[2]][0] - coordinatexy[changetag[1]][0]
@@ -614,15 +621,21 @@ def animation_write(taglist):
             p.append(plt.quiver(x_changeloc[0], y_changeloc[0],quiver_x, quiver_y, scale_units = 'xy',scale = 1, color= 'blue', width = 0.01))
             
             
-
+        """
         
             
 
 
-    anim = FuncAnimation(fig, update, frames = location_by_time, interval = 500)
+    anim = FuncAnimation(fig, update, frames = location_datas, interval = 300)
     #plt.show()
-    anim.save('test1.gif', writer= 'pillow')
-    #anim.save('anim.mp4', writer="ffmpeg")
+    
+    if savestyle == 1:
+        animation_file_name += "_.mp4"
+        anim.save(animation_file_name, writer="ffmpeg")
+    else:
+        animation_file_name += "_.gif"
+        anim.save(animation_file_name, writer= 'pillow')
+    
     plt.close
 
 
@@ -630,18 +643,12 @@ def animation_write(taglist):
 if __name__ == '__main__':
     csvname = input('filename:')
     focused_tagids = []
-    while True:
-        focused_tagid  = input('tagid(下4桁【ALL TAG->0入力】):')
-        if focused_tagid == '0':
-            break
-        focused_tagids.append(focused_tagid)
-    print('partcsv')
-    if focused_tagids == []:
-        tagid_list =  maketaglist(csvname)
-    else:
-        tagid_list = []
-        for focused_tagid in focused_tagids:
-            tagid_list.append('8201' + focused_tagid)
+    focused_tagid  = input('single tagid(last four digits):')
+    #print('partcsv')
+    tagid = ('8201' + focused_tagid)
+    savestyle = int(input('<savestyle>\n0: .gif\n1: mp4(need ffmpeg)\ninput:'))
+    #print("tagid:" + tagid)
+    tagid_list = [tagid]
     tagdatalist_times = runpartcsv(tagid_list)
     tagdatalist = tagdatalist_times[1][0]
     times = tagdatalist_times[1][1]
@@ -719,7 +726,8 @@ for location in location_datas:
         #print(pino)
         location_list[pino] += 1
 #print(location_by_time)
-animation_write(tagid_list)
+animation_file_name = "single_"+ tagid
+animation_write(tagid, savestyle, animation_file_name)
 print(tagid_list)
 
     #final_savename = animetest(dataset_for_anime, times)
