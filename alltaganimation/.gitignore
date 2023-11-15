@@ -1,0 +1,6 @@
+*.csv
+!alltagdata.csv
+!timedata_till1332.csv
+!timedatatest.csv
+!alltagdata_standardized.csv
+!timeall.csv
