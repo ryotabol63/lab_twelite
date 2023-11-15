@@ -13,6 +13,7 @@ import math
 import pathlib
 import operator
 from matplotlib.animation import FuncAnimation
+from matplotlib import patches
 import pykalman
 import copy
 
@@ -497,7 +498,7 @@ def animation_write(tagid, savestyle, animation_file_name):
     location_by_time = []
 
     fig = plt.figure()
-    plt.subplot(111)
+    ax = fig.add_subplot(111)
     coordinatexy = determine_coordinate()   #xy座標の定義
 
     #円とラベルの描画
@@ -508,9 +509,11 @@ def animation_write(tagid, savestyle, animation_file_name):
     #centerlisty = (5,8,8,2,1)
 
     for num in range(0,used_pinm):
-        cirx = coordinatexy[num][0] + 1.0 * np.cos(t)
-        ciry = coordinatexy[num][1] + 1.0 * np.sin(t)
-        plt.plot(cirx,ciry,'-', color='blue')
+        #cirx = coordinatexy[num][0] + 1.0 * np.cos(t)
+        #ciry = coordinatexy[num][1] + 1.0 * np.sin(t)
+        #plt.plot(cirx,ciry,'-', color='blue')
+        c = patches.Circle( xy=coordinatexy[num], radius=1, ec='blue', fill=False) # 円のオブジェクト
+        ax.add_patch(c)
         piname = 'P' + str(num + 1)
         plt.text(coordinatexy[num][0]-1.2, coordinatexy[num][1]+0.7, piname)
 
@@ -528,8 +531,8 @@ def animation_write(tagid, savestyle, animation_file_name):
     rry = np.linspace(2.5,2.5,N)
     plt.plot(r1x,rry,color= 'black')
     #場所のテキスト
-    plt.text(3,1.8,'Zipline')
-    plt.text(12,5,'Slacklines')
+    plt.text(2,0.8,'Zipline')
+    plt.text(12.3,1,'Slacklines')
     plt.text(4,7,'Athletics')
     #plt.xlabel('X',fontsize=18)
     #plt.ylabel('Y',fontsize=18)
@@ -558,7 +561,7 @@ def animation_write(tagid, savestyle, animation_file_name):
     quiver_list = []
 
     def pimove(movefrom, moveto):
-        pi_movecountlist[movefrom-1][moveto-1] += 1
+        pi_movecountlist[movefrom][moveto] += 1
 
     #移動有無判定の初期値
     global tag_location 
@@ -575,6 +578,20 @@ def animation_write(tagid, savestyle, animation_file_name):
             #print(len(p))
             rem = p.pop(0)
             rem.remove()
+        #初期処理(共通)
+        p.append(plt.text(12,14, frame[0]))     #時間
+        #前時刻までの矢羽根処理
+        for i in range(0,used_pinm):
+            for k in range(0,used_pinm):
+                if pi_movecountlist[i][k] != 0:
+                    quiverwidth = int((pi_movecountlist[i][k] + 4)/5)
+                    quiver_x , quiver_y = quiver_displacement_list[i][k]
+                    p.append(plt.quiver(coordinatexy[i][0], (coordinatexy[i][1] + np.sign(i-k) *0.2), quiver_x, quiver_y, scale_units = 'xy',scale = 1, color= 'gray', width = quiverwidth * 0.002))
+                    #ベクトルがどっち向きかによって高さを変える(np.sign)
+                    
+
+    
+
         #print(p)
         #print(frame[0])
         cur_time = frame[0]
@@ -586,14 +603,20 @@ def animation_write(tagid, savestyle, animation_file_name):
                 #位置の移動がある場合(矢羽根用のデータ収録)
                 quiver_x , quiver_y = quiver_displacement_list[tag_location][new_tag_location]
                 p.append(plt.quiver(coordinatexy[tag_location][0], coordinatexy[tag_location][1], quiver_x, quiver_y, scale_units = 'xy',scale = 1, color= 'blue', width = 0.01))
-                movedetail = (tag_location, new_tag_location)
+                pimove(tag_location, new_tag_location)
+                #print(pi_movecountlist)
             tag_location = new_tag_location
 
         #共通処理
         pi_countlist[tag_location] += 1     #そのタグを踏んだ回数
         for i in range(0,len(pi_countlist)):
-            p.append(plt.text(coordinatexy[i][0]+1.0, coordinatexy[i][1]+0.7, str(pi_countlist[i])))#踏んだ回数の表示
-        p.append(plt.text(12,14, frame[0]))     #時間
+            alpha = pi_countlist[i] / sum(pi_countlist)
+            #alpha = pi_countlist[i] * 0.005
+            #if alpha > 0.8:
+                #alpha = 0.8
+            c = patches.Circle( xy=coordinatexy[i], radius=1, ec='blue', fc='darkgreen', alpha = alpha) # 円のオブジェクト
+            p.append(ax.add_patch(c))#踏んだ回数？割合？分じんわり色付け
+            p.append(ax.text(coordinatexy[i][0]+1 , coordinatexy[i][1]+0.7, pi_countlist[i]))#踏んだ回数の表示
         #タグのプロット
         p.extend(plt.plot(coordinatexy[tag_location][0], coordinatexy[tag_location][1], 's', color='red',markersize=5, aa=True))   #pltplotはリストなのでextend
         if moveflag:    #移動がある場合
