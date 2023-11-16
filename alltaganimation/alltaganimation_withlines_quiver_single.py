@@ -503,8 +503,8 @@ def animation_write(tagid, savestyle, animation_file_name):
 
     #円とラベルの描画
     N = 200 #曲線のなめらかさ
-    pi_2 = 2.0 * math.pi
-    t = np.linspace(0,pi_2,N)#媒介変数
+    #pi_2 = 2.0 * math.pi
+    #t = np.linspace(0,pi_2,N)#媒介変数
     #centerlistx = (13,1,5,3,8)#円の中心リスト（各Piの位置に相当）
     #centerlisty = (5,8,8,2,1)
 
@@ -584,9 +584,9 @@ def animation_write(tagid, savestyle, animation_file_name):
         for i in range(0,used_pinm):
             for k in range(0,used_pinm):
                 if pi_movecountlist[i][k] != 0:
-                    quiverwidth = int((pi_movecountlist[i][k] + 4)/5)
+                    quiverwidth = int((pi_movecountlist[i][k] + 2)/3)
                     quiver_x , quiver_y = quiver_displacement_list[i][k]
-                    p.append(plt.quiver(coordinatexy[i][0], (coordinatexy[i][1] + np.sign(i-k) *0.2), quiver_x, quiver_y, scale_units = 'xy',scale = 1, color= 'gray', width = quiverwidth * 0.002))
+                    p.append(plt.quiver(coordinatexy[i][0], (coordinatexy[i][1] + np.sign(i-k) *0.2), quiver_x, quiver_y, scale_units = 'xy',scale = 1, color= 'gray', width = quiverwidth * 0.0025))
                     #ベクトルがどっち向きかによって高さを変える(np.sign)
                     
 
@@ -614,7 +614,7 @@ def animation_write(tagid, savestyle, animation_file_name):
             #alpha = pi_countlist[i] * 0.005
             #if alpha > 0.8:
                 #alpha = 0.8
-            c = patches.Circle( xy=coordinatexy[i], radius=1, ec='blue', fc='darkgreen', alpha = alpha) # 円のオブジェクト
+            c = patches.Circle( xy=coordinatexy[i], radius=1, ec='blue', fc='blue', alpha = alpha) # 円のオブジェクト
             p.append(ax.add_patch(c))#踏んだ回数？割合？分じんわり色付け
             p.append(ax.text(coordinatexy[i][0]+1 , coordinatexy[i][1]+0.7, pi_countlist[i]))#踏んだ回数の表示
         #タグのプロット
@@ -653,10 +653,10 @@ def animation_write(tagid, savestyle, animation_file_name):
     #plt.show()
     
     if savestyle == 1:
-        animation_file_name += "_.mp4"
+        animation_file_name += ".mp4"
         anim.save(animation_file_name, writer="ffmpeg")
     else:
-        animation_file_name += "_.gif"
+        animation_file_name += ".gif"
         anim.save(animation_file_name, writer= 'pillow')
     
     plt.close

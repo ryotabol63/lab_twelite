@@ -13,6 +13,7 @@ import math
 import pathlib
 import operator
 from matplotlib.animation import FuncAnimation
+from matplotlib import patches
 import pykalman
 
 def maketaglist(csvname):
@@ -441,8 +442,8 @@ def unitcsv(dirdata, files):
 
 def determine_coordinate():
     coordinate = []   #座標
-    pi1 = (2,2)         #pi1(x,y)
-    pi2 = (6,2)         #pi2(x,y)
+    pi1 = (2,2.5)         #pi1(x,y)
+    pi2 = (6,2.5)         #pi2(x,y)
     pi3 = (9,1)         #pi3(x,y)
     pi4 = (12,8)         #pi4(x,y)    
     pi5 = (15,6)         #pi5(x,y)
@@ -463,7 +464,7 @@ def coordinate(pn,coordinatexy):     #ここで座標を入力
 
 
 
-def animation_write(taglist):
+def animation_write(taglist, savestyle, animation_file_name):
 
     tagrand = []
     for tag in taglist:
@@ -493,7 +494,7 @@ def animation_write(taglist):
     location_by_tag = [-1 for i in range(len(taglist))]
 
     fig = plt.figure()
-    plt.subplot(111)
+    ax = fig.add_subplot(111)
     coordinatexy = determine_coordinate()   #xy座標の定義
 
     #円とラベルの描画
@@ -504,11 +505,13 @@ def animation_write(taglist):
     #centerlisty = (5,8,8,2,1)
 
     for num in range(0,used_pinm):
-        cirx = coordinatexy[num][0] + 1.0 * np.cos(t)
-        ciry = coordinatexy[num][1] + 1.0 * np.sin(t)
-        plt.plot(cirx,ciry,'-', color='blue')
+        #cirx = coordinatexy[num][0] + 1.0 * np.cos(t)
+        #ciry = coordinatexy[num][1] + 1.0 * np.sin(t)
+        #plt.plot(cirx,ciry,'-', color='blue')
+        c = patches.Circle( xy=coordinatexy[num], radius=1, ec='blue', fill=False) # 円のオブジェクト
+        ax.add_patch(c)
         piname = 'P' + str(num + 1)
-        plt.text(coordinatexy[num][0]-1.2, coordinatexy[num][1]+0.4, piname)
+        plt.text(coordinatexy[num][0]-1.2, coordinatexy[num][1]+0.7, piname)
 
     r1x = np.linspace(0,10,N)
     #r2x = np.linspace(10,16,N)
@@ -516,13 +519,14 @@ def animation_write(taglist):
     for xn in (12,15):
         rrx = np.linspace(xn,xn,100)
         plt.plot(rrx,ry,color= 'black')
-    for yn in (2,-100):
-        rry = np.linspace(yn,yn,N)
-        plt.plot(r1x,rry,color= 'black')
-        #plt.plot(r2x,rry,color = 'black')
-    plt.text(3,3,'Zipline')
-    plt.text(12,5,'Slacklines')
-    plt.text(4,6,'Athletics')
+    #zipline用の黒線
+    r1x = np.linspace(0,10,N)
+    rry = np.linspace(2.5,2.5,N)
+    plt.plot(r1x,rry,color= 'black')
+    #場所のテキスト
+    plt.text(2,0.8,'Zipline')
+    plt.text(12.3,1,'Slacklines')
+    plt.text(4,7,'Athletics')
     #plt.xlabel('X',fontsize=18)
     #plt.ylabel('Y',fontsize=18)
     plt.xlim(0,18)              #描画領域(x)
@@ -569,11 +573,16 @@ def animation_write(taglist):
         xrand.append(xa)
         yrand.append(ya)
     '''
+
+    #描画データ保存用リスト(毎回更新されるもの)
     p = []
+    #updateで毎回更新されるもの
+    pi_countlist = [0,0,0,0,0]
 
     #print(coordinatexy)
     def update(frame):
         while p != []:
+            #前回描画のリセット
             #print(p)
             #print(len(p))
             rem = p.pop(0)
@@ -586,6 +595,7 @@ def animation_write(taglist):
         for printtag in frame[1]:    #タグの場所の描画
             tag_index = taglist.index(printtag[0])
             cur_rand = tagrand[tag_index]
+            pi_countlist[printtag[1]] += 1
             plt_x.append(coordinatexy[printtag[1]][0] + cur_rand[0])
             plt_y.append(coordinatexy[printtag[1]][1] + cur_rand[1])
         if plt_x != []:
@@ -598,6 +608,15 @@ def animation_write(taglist):
             x_changeloc = [coordinatexy[changetag[1]][0] + cur_rand[0], coordinatexy[changetag[2]][0] + cur_rand[0]]
             y_changeloc = [coordinatexy[changetag[1]][1] + cur_rand[1], coordinatexy[changetag[2]][1] + cur_rand[1]]
             p.extend(plt.plot(x_changeloc, y_changeloc, color= 'blue', lw = 1))
+        #踏んだ回数によっての色分け
+        for i in range(0,len(pi_countlist)):
+            alpha = pi_countlist[i] / sum(pi_countlist)
+            #alpha = pi_countlist[i] * 0.005
+            #if alpha > 0.8:
+                #alpha = 0.8
+            c = patches.Circle( xy=coordinatexy[i], radius=1, ec='blue', fc='blue', alpha = alpha) # 円のオブジェクト
+            p.append(ax.add_patch(c))#踏んだ回数？割合？分じんわり色付け
+            p.append(ax.text(coordinatexy[i][0]+1 , coordinatexy[i][1]+0.7, pi_countlist[i]))#踏んだ回数の表示
             
 
         
@@ -606,7 +625,16 @@ def animation_write(taglist):
 
     anim = FuncAnimation(fig, update, frames = location_by_time, interval = 500)
     #plt.show()
-    anim.save('test1.gif', writer= 'pillow')
+
+
+
+    if savestyle == 1:
+        animation_file_name += ".mp4"
+        anim.save(animation_file_name, writer="ffmpeg")
+    else:
+        animation_file_name += ".gif"
+        anim.save(animation_file_name, writer= 'pillow')
+    #anim.save('test1.gif', writer= 'pillow')
     #anim.save('anim.mp4', writer="ffmpeg")
     plt.close
 
@@ -620,6 +648,7 @@ if __name__ == '__main__':
         if focused_tagid == '0':
             break
         focused_tagids.append(focused_tagid)
+    savestyle = int(input('<savestyle>\n0: .gif\n1: mp4(need ffmpeg)\ninput:'))
     print('partcsv')
     if focused_tagids == []:
         tagid_list =  maketaglist(csvname)
@@ -627,6 +656,7 @@ if __name__ == '__main__':
         tagid_list = []
         for focused_tagid in focused_tagids:
             tagid_list.append('8201' + focused_tagid)
+    animation_file_name = tagid_list[0] + '_and_' + str(len(tagid_list)-1) + 'tag'
     tagdatalist_times = runpartcsv(tagid_list)
     tagdatalist = tagdatalist_times[1][0]
     times = tagdatalist_times[1][1]
@@ -704,7 +734,7 @@ for location in location_datas:
         #print(pino)
         location_list[pino] += 1
 #print(location_by_time)
-animation_write(tagid_list)
+animation_write(tagid_list, savestyle, animation_file_name)
 print(tagid_list)
 
     #final_savename = animetest(dataset_for_anime, times)
