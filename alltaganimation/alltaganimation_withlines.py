@@ -534,6 +534,17 @@ def animation_write(taglist, savestyle, animation_file_name):
     location_list =[]
     change_list = []
 
+    #ベクトルのリスト
+    quiver_displacement_list = []
+    for i in range(0,used_pinm):
+        displacement = []
+        for k in range(0,used_pinm):
+            displacement.append((coordinatexy[k][0] - coordinatexy[i][0], coordinatexy[k][1] - coordinatexy[i][1]))
+        quiver_displacement_list.append(displacement)
+    #print(quiver_displacement_list)
+
+
+
     for location in location_datas:
         if not location[0] == cur_time:
             #前の時間のデータを保存
@@ -605,9 +616,11 @@ def animation_write(taglist, savestyle, animation_file_name):
         for changetag in frame[2]:
             tag_index = taglist.index(changetag[0])
             cur_rand = tagrand[tag_index]
-            x_changeloc = [coordinatexy[changetag[1]][0] + cur_rand[0], coordinatexy[changetag[2]][0] + cur_rand[0]]
-            y_changeloc = [coordinatexy[changetag[1]][1] + cur_rand[1], coordinatexy[changetag[2]][1] + cur_rand[1]]
-            p.extend(plt.plot(x_changeloc, y_changeloc, color= 'blue', lw = 1))
+            #x_changeloc = [coordinatexy[changetag[1]][0] + cur_rand[0], coordinatexy[changetag[2]][0] + cur_rand[0]]
+            #y_changeloc = [coordinatexy[changetag[1]][1] + cur_rand[1], coordinatexy[changetag[2]][1] + cur_rand[1]]
+            #p.extend(plt.plot(x_changeloc, y_changeloc, color= 'blue', lw = 1))
+            quiver_x , quiver_y = quiver_displacement_list[changetag[1]][changetag[2]]
+            p.append(ax.quiver(coordinatexy[changetag[1]][0] + cur_rand[0], coordinatexy[changetag[1]][1] + cur_rand[1], quiver_x, quiver_y, scale_units = 'xy',scale = 1, color= 'blue', width = 0.003))
         #踏んだ回数によっての色分け
         for i in range(0,len(pi_countlist)):
             alpha = pi_countlist[i] / sum(pi_countlist)
