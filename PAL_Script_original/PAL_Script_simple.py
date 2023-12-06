@@ -8,10 +8,16 @@ def make_portlist():
     #MONOSTICKが接続されていると思われるポート一覧を取得
     list = serial.tools.list_ports.comports()
     portlist_valid = []
-    for p in list:
-        if 'USB Serial Port' in p.description:
-            #シリアルポート≒MONOSTICKのみをポートリストに追加する
-            portlist_valid.append(p)
+    if sys.platform == 'win32':         #windows
+        for p in list:
+            if 'USB Serial Port' in p.description:
+                #シリアルポート≒MONOSTICKのみをポートリストに追加する
+                portlist_valid.append(p)
+    elif sys.platform == "linux":
+        for p in list:
+            if 'USB Serial Port' in p.description:
+                #シリアルポート≒MONOSTICKのみをポートリストに追加する
+                portlist_valid.append(p)
         #print(str(p)[6:])
     #print(portlist_valid)
     return portlist_valid
