@@ -13,9 +13,9 @@ def make_portlist():
             if 'USB Serial Port' in p.description:
                 #シリアルポート≒MONOSTICKのみをポートリストに追加する
                 portlist_valid.append(p)
-    elif sys.platform == "linux":
+    elif sys.platform == "linux":      #linux・こちらのほうが正確にMONOSTICKのみを抽出できる
         for p in list:
-            if 'USB Serial Port' in p.description:
+            if 'MONOSTICK' in p.description:
                 #シリアルポート≒MONOSTICKのみをポートリストに追加する
                 portlist_valid.append(p)
         #print(str(p)[6:])
