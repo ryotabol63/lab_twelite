@@ -13,25 +13,25 @@ def make_portlist():
     #MONOSTICKが接続されていると思われるポート一覧を取得
     list = serial.tools.list_ports.comports()
     portlist_valid = []
-    for p in list:
-        if 'USB Serial Port' in p.description:
-            #シリアルポート≒MONOSTICKのみをポートリストに追加する
+    if sys.platform == 'win32':         #windows
+        for p in list:
+            if p.vid ==  1027 and p.pid == 24577 :
+                #MONOSTICKに使われているvid,pidのみをポートリストに追加する
+                portlist_valid.append(p)
+    elif sys.platform == "linux":      #linux(linuxのほうが正確にMONOSTICKのみを抽出できる)
+        for p in list:
+            if 'MONOSTICK' in p.description:
+                #MONOSTICKのみをポートリストに追加する
+                portlist_valid.append(p)
+        #print(str(p)[6:]) a
+    else:
+        for p in list:
+            #いまのところMacは選別は非対応
             portlist_valid.append(p)
-        #print(str(p)[6:])
     #print(portlist_valid)
     return portlist_valid
 
-def sc16x4_2_int(hex):
-    b = int(hex,16)  #16進数strをint型にキャスト
-    return -(b & 0b1000000000000000) | (b& 0b0111111111111111)
-#解説（備忘録）：(b & 0b1000000000000000)部分->正の数なら0負なら0b1000000000000000になる
-#(b& 0b0111111111111111)は絶対値を抽出
-# 式に-が入っていることでこのビット演算->整数化の過程は符号付intとして行われる
-#あとは左結合でビット演算
-
-
-if __name__ == '__main__':
-    ports = make_portlist()
+def choose_port(ports):
     #ポートリストをprint
     for i in range(len(ports)):
         print(f"{i}: {ports[i]}")
@@ -51,10 +51,59 @@ if __name__ == '__main__':
             print("invalid portnum")
         else:
             validport = True
+
+    return portnum
+
+def sc16x4_2_int(hex):
+    #符号付き16bitで保存されている値を符号を残してintにキャストする関数
+    b = int(hex,16)  #16進数strをint型にキャスト
+    return -(b & 0b1000000000000000) | (b& 0b0111111111111111)
+#解説（備忘録）：(b & 0b1000000000000000)部分->正の数なら0負なら0b1000000000000000になる
+#(b& 0b0111111111111111)は絶対値（補数）を抽出
+# 式に-が入っていることでこのビット演算->整数化の過程は符号付intとして行われる
+#※ふつうにやってしまうと、符号なしintとして整数化され不具合となる
+# 検索ワード「符号つきバイナリ　int　python」
+#あとは左結合でビット演算
+
+class Tagdata:
+
+    def __init__(self, tag_log):  #コンストラクタ
+        self.nowtime = datetime.datetime.now().strftime('%Y%m%d_%H:%M:%S.%f')[:-3]
+        #受信時刻
+        self.tag_id = tag_log[14:22]     #tag番号
+        self.postnum = str(int(tag_log[28:32],16))   #送信連番
+        self.lqi = str(int(tag_log[22:24], 16))     #電波強度
+        #上二つはstr(16進数)->int->str(10進数)でキャストしている
+        if len(tag_log) > 43: #加速度までちゃんと取れている
+            self.acc_x_ave = str(sc16x4_2_int(tag_log[32:36]))
+            self.acc_y_ave = str(sc16x4_2_int(tag_log[36:40]))
+            self.acc_z_ave = str(sc16x4_2_int(tag_log[40:44]))
+        else:
+            self.acc_x_ave = self.acc_y_ave = self.acc_z_ave = 'Nan'
+        self.tag_property_list = [self.nowtime, self.tag_id, self.postnum, self.lqi,\
+                 self.acc_x_ave, self.acc_y_ave, self.acc_z_ave]
+
     
-    #ここからポート開く
+    def output_tagdata(self):
+        #プロパティをリスト形式で返す
+        return(self.tag_property_list)
+
+    def write_to_csv(self, filename):
+        #プロパティを指定されたcsvファイルに1行で書き込み
+        
+        with open(filename, 'a', newline='\n') as out_f:
+            #データを書き込むときに逐一ファイルを開け閉めする
+            out_f.write(','.join(self.tag_property_list)+'\n')
+            #書き込み
+
+
+
+if __name__ == '__main__':
+    ports = make_portlist()
+    portnum = choose_port(ports)
     try:
         ser = serial.Serial(ports[portnum].device, baudrate= baudrate, timeout= 1.0)
+        #シリアルポートインスタンスの定義（timeoutに設定された時間で下のtryループが回る->Ctrl+Cのキャッチ））
         print(f"open {ports[portnum].device}")
     except:
         #開けなかった場合
@@ -75,52 +124,24 @@ if __name__ == '__main__':
     #ここから値取得・書き込み
     try:
         while 1:
-            with open(filename, 'a', newline='\n') as out_f:
-                #データを書き込むときに逐一ファイルを開け閉めする
-                #バイナリをデコードする
-                line = ser.readline().decode('utf-8')
-                if len(line) == 0:
-                    continue
-                #print(line)
-                #取得データがつながってしまっている場合は":"で分割
-                line_split = line.split(sep= ':')
-                if len(line_split) == 2:        #つながっているデータを”：”で分割
-                    datatype_flag = 0               #もともとのPAL_Scriptでもとれるもの
-                else: datatype_flag = 1             #今回の改変によって取れるようになったもの
-                
-                for tag_log in line_split:
-                    print(len(tag_log))
-                    if len(tag_log) > 31:
-                        #必要な情報が入っている最低の長さ
-                        lqi = int(tag_log[22:24], 16)    #電波強度
-                        print(lqi)
-                        postnum = int(tag_log[28:32],16) #送信番号
-                        tag_id = tag_log[6:14]               #タグ番号
-                        print(tag_id)
-                        print(postnum)
-                        if tag_id[0:2] == '82':#MONOSTICKからのデータであることを判定
-                            #データを処理した時間
-                            #※要改善（つながってたデータを処理した場合、現状の時間は受信時刻ではなく、つながりを解消して書き込んだ時間）
-                            nowtime= datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S.%f')[:-3]
-                            output_data = [nowtime, tag_id, str(postnum), str(lqi)]
-
-                            if len(tag_log) > 43: #加速度までちゃんと取れている
-                                acc_x_ave = sc16x4_2_int(tag_log[32:36])
-                                acc_y_ave = sc16x4_2_int(tag_log[36:40])
-                                acc_z_ave = sc16x4_2_int(tag_log[40:44])
-                                #print((acc_x_ave,acc_y_ave,acc_z_ave))
-                                output_data += [str(acc_x_ave), str(acc_y_ave), str(acc_z_ave)]
-
-                            else:
-                                output_data += ["Nan", "Nan", "Nan"]   #加速度をNaNでうめる（処理都合）  
-                            
-                            #debug(ファイル改変によって取れるようになったデータかどうかのフラグを付与する)
-                            output_data.append(str(datatype_flag))
-
-                            #各データごとに改行するための改行文字
-                            output_data.append('\n')
-                            out_f.write(','.join(output_data))
-                            #書き込み
+            #バイナリをデコードする
+            line = ser.readline().decode('utf-8')
+            if len(line) == 0:
+                continue
+            line = line.removeprefix(':')    #先頭の:を削除
+            line_split = line.split(sep= ':')
+            #取得データがつながってしまっている場合は":"で分割
+            if len(line_split) == 1:        #つながっているデータを”：”で分割
+                datatype_flag = 0               #もともとのPAL_Scriptでもとれるもの
+            else: datatype_flag = 1             #今回の改変によって取れるようになったもの
+            
+            for tag_log in line_split:
+                print(len(tag_log))
+                if len(tag_log) > 31 and tag_log[6:8] == '82':
+                    #必要な情報が入っている最低の長さ and TWELITE_CUEからの正常受信
+                    tagdata = Tagdata(tag_log)
+                    tagdata.write_to_csv(filename)
+                    
     except UnicodeDecodeError:
         #ごくまれにdecodeでエラーが起こる（その場合はpass）
         pass
