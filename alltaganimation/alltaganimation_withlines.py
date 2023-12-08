@@ -494,7 +494,8 @@ def animation_write(taglist, savestyle, animation_file_name):
     location_by_tag = [-1 for i in range(len(taglist))]
 
     fig = plt.figure()
-    ax = fig.add_subplot(111)
+    ax = fig.add_subplot(111)       #オブジェクト定義
+    ax.set_aspect('equal')
     coordinatexy = determine_coordinate()   #xy座標の定義
 
     #円とラベルの描画
@@ -511,7 +512,7 @@ def animation_write(taglist, savestyle, animation_file_name):
         c = patches.Circle( xy=coordinatexy[num], radius=1, ec='blue', fill=False) # 円のオブジェクト
         ax.add_patch(c)
         piname = 'P' + str(num + 1)
-        plt.text(coordinatexy[num][0]-1.2, coordinatexy[num][1]+0.7, piname)
+        plt.text(coordinatexy[num][0]-1.4, coordinatexy[num][1]+0.7, piname)
 
     r1x = np.linspace(0,10,N)
     #r2x = np.linspace(10,16,N)
@@ -525,12 +526,12 @@ def animation_write(taglist, savestyle, animation_file_name):
     plt.plot(r1x,rry,color= 'black')
     #場所のテキスト
     plt.text(2,0.8,'Zipline')
-    plt.text(12.3,1,'Slacklines')
+    plt.text(12.2,0.5,'Slacklines')
     plt.text(4,7,'Athletics')
     #plt.xlabel('X',fontsize=18)
     #plt.ylabel('Y',fontsize=18)
     plt.xlim(0,18)              #描画領域(x)
-    plt.ylim(0,16)              #描画領域(y)
+    plt.ylim(0,14)              #描画領域(y)
     location_list =[]
     change_list = []
 
@@ -600,7 +601,7 @@ def animation_write(taglist, savestyle, animation_file_name):
             rem.remove()
         #print(p)
         #print(frame[0])
-        p.append(plt.text(12,14, frame[0]))
+        p.append(plt.text(11,12, frame[0]))
         plt_x = []
         plt_y = []
         for printtag in frame[1]:    #タグの場所の描画

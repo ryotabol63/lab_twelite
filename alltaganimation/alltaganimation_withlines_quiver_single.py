@@ -499,6 +499,7 @@ def animation_write(tagid, savestyle, animation_file_name):
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
+    ax.set_aspect('equal')
     coordinatexy = determine_coordinate()   #xy座標の定義
 
     #円とラベルの描画
@@ -515,7 +516,7 @@ def animation_write(tagid, savestyle, animation_file_name):
         c = patches.Circle( xy=coordinatexy[num], radius=1, ec='blue', fill=False) # 円のオブジェクト
         ax.add_patch(c)
         piname = 'P' + str(num + 1)
-        plt.text(coordinatexy[num][0]-1.2, coordinatexy[num][1]+0.7, piname)
+        plt.text(coordinatexy[num][0]-1.4, coordinatexy[num][1]+0.7, piname)
 
     #円ここまで
 
@@ -532,12 +533,12 @@ def animation_write(tagid, savestyle, animation_file_name):
     plt.plot(r1x,rry,color= 'black')
     #場所のテキスト
     plt.text(2,0.8,'Zipline')
-    plt.text(12.3,1,'Slacklines')
+    plt.text(12.2,0.5,'Slacklines')
     plt.text(4,7,'Athletics')
     #plt.xlabel('X',fontsize=18)
     #plt.ylabel('Y',fontsize=18)
     plt.xlim(0,18)              #描画領域(x)
-    plt.ylim(0,16)              #描画領域(y)
+    plt.ylim(0,14)              #描画領域(y)
     location_list =[]
     change_list = []
 
@@ -579,14 +580,14 @@ def animation_write(tagid, savestyle, animation_file_name):
             rem = p.pop(0)
             rem.remove()
         #初期処理(共通)
-        p.append(plt.text(12,14, frame[0]))     #時間
+        p.append(plt.text(11,12, frame[0]))     #時間
         #前時刻までの矢羽根処理
         for i in range(0,used_pinm):
             for k in range(0,used_pinm):
                 if pi_movecountlist[i][k] != 0:
                     quiverwidth = int((pi_movecountlist[i][k] + 2)/3)
                     quiver_x , quiver_y = quiver_displacement_list[i][k]
-                    p.append(plt.quiver(coordinatexy[i][0], (coordinatexy[i][1] + np.sign(i-k) *0.2), quiver_x, quiver_y, scale_units = 'xy',scale = 1, color= 'gray', width = quiverwidth * 0.0025))
+                    p.append(plt.quiver(coordinatexy[i][0], (coordinatexy[i][1] + np.sign(i-k) *0.2), quiver_x, quiver_y, scale_units = 'xy',scale = 1, color= 'gray', width = quiverwidth * 0.005))
                     #ベクトルがどっち向きかによって高さを変える(np.sign)
                     
 
