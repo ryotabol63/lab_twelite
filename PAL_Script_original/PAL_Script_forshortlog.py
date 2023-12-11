@@ -6,7 +6,9 @@ import datetime
 
 
 #設定
-baudrate = 38400
+baudrate = 38400  #ボーレートをMONOSTICKと同じ設定値にする
+pidata = 'Nan'    #ラズパイによって設定値を変えて（番号とか）後々区別して処理できるようにする
+
 
 
 def make_portlist():
@@ -26,7 +28,7 @@ def make_portlist():
         #print(str(p)[6:]) a
     else:
         for p in list:
-            #いまのところMacは選別は非対応
+            #いまのところMacは選別は非対応(実機ないので)
             portlist_valid.append(p)
     #print(portlist_valid)
     return portlist_valid
@@ -67,10 +69,10 @@ def sc16x4_2_int(hex):
 
 class Tagdata:
 
-    def __init__(self, tag_log):  #コンストラクタ
+    def __init__(self, tag_log, pidata):  #コンストラクタ
         self.nowtime = datetime.datetime.now().strftime('%Y%m%d_%H:%M:%S.%f')[:-3]
         #受信時刻
-        self.tag_id = tag_log[14:22]     #tag番号
+        self.tag_id = tag_log[6:14]     #tag番号
         self.postnum = str(int(tag_log[28:32],16))   #送信連番
         self.lqi = str(int(tag_log[22:24], 16))     #電波強度
         #上二つはstr(16進数)->int->str(10進数)でキャストしている
@@ -80,17 +82,16 @@ class Tagdata:
             self.acc_z_ave = str(sc16x4_2_int(tag_log[40:44]))
         else:
             self.acc_x_ave = self.acc_y_ave = self.acc_z_ave = 'Nan'
-        self.tag_property_list = [self.nowtime, self.tag_id, self.postnum, self.lqi,\
-                 self.acc_x_ave, self.acc_y_ave, self.acc_z_ave]
+        self.pidata = pidata
+        
 
-    
-    def output_tagdata(self):
-        #プロパティをリスト形式で返す
-        return(self.tag_property_list)
+    def make_property_list(self):
+        return ([self.nowtime, self.tag_id, self.postnum, self.lqi,\
+                 self.acc_x_ave, self.acc_y_ave, self.acc_z_ave, self.pidata])
 
     def write_to_csv(self, filename):
         #プロパティを指定されたcsvファイルに1行で書き込み
-        
+        self.tag_property_list = self.make_property_list()
         with open(filename, 'a', newline='\n') as out_f:
             #データを書き込むときに逐一ファイルを開け閉めする
             out_f.write(','.join(self.tag_property_list)+'\n')
@@ -116,7 +117,7 @@ if __name__ == '__main__':
     print(filename)
 
     #ヘッダ書き込み
-    header = ["time", "tag", "Number", "LQI", "xacc", "yacc", "zacc", "datatype", "\n"]
+    header = ["time", "tag", "Number", "LQI", "xacc", "yacc", "zacc", "pidata","\n"]
     with open(filename, 'a', newline='\n') as out_f:
         out_f.write(','.join(header))
 
@@ -131,17 +132,22 @@ if __name__ == '__main__':
             line = line.removeprefix(':')    #先頭の:を削除
             line_split = line.split(sep= ':')
             #取得データがつながってしまっている場合は":"で分割
+            '''
+            debugで使っていたが必要なさそうなので削除
             if len(line_split) == 1:        #つながっているデータを”：”で分割
-                datatype_flag = 0               #もともとのPAL_Scriptでもとれるもの
-            else: datatype_flag = 1             #今回の改変によって取れるようになったもの
+                datatype_flag = 0               #分割が発生しない場合
+            else: datatype_flag = 1             #分割が発生（電波強度は取れるが加速度欠損の可能性）
+
+            '''
             
             for tag_log in line_split:
                 print(len(tag_log))
                 if len(tag_log) > 31 and tag_log[6:8] == '82':
                     #必要な情報が入っている最低の長さ and TWELITE_CUEからの正常受信
-                    tagdata = Tagdata(tag_log)
+                    tagdata = Tagdata(tag_log, pidata)
                     tagdata.write_to_csv(filename)
-                    
+            
+                   
     except UnicodeDecodeError:
         #ごくまれにdecodeでエラーが起こる（その場合はpass）
         pass

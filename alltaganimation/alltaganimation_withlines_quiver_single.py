@@ -1,3 +1,4 @@
+#単一タグを対象に，移動の推移を→の向き，移動の履歴（多さ）を矢印の太さでアニメーションするプログラム
 import csv
 import os
 import sys
@@ -96,6 +97,7 @@ def runpartcsv(taglist):
 
 
 def before_linear_withtagID (dirdata,csvname):
+    #ラズパイごとにデータを分別する
 
     df = pd.read_csv(dirdata + '\\' + csvname, encoding='shift-jis',dtype= 'object')
     lognames = []
