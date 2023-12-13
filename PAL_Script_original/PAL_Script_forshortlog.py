@@ -81,7 +81,9 @@ class Tagdata:
             self.acc_y_ave = str(sc16x4_2_int(tag_log[36:40]))
             self.acc_z_ave = str(sc16x4_2_int(tag_log[40:44]))
         else:
-            self.acc_x_ave = self.acc_y_ave = self.acc_z_ave = 'Nan'
+            self.acc_x_ave = 'Nan'
+            self.acc_y_ave = 'Nan'
+            self.acc_z_ave = 'Nan'
         self.pidata = pidata
         
 

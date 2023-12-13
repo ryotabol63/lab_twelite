@@ -81,7 +81,9 @@ class Tagdata:
             self.acc_y_ave = sc16x4_2_int(tag_log[36:40])
             self.acc_z_ave = sc16x4_2_int(tag_log[40:44])
         else:
-            self.acc_x_ave = self.acc_y_ave = self.acc_z_ave = 'Nan'
+            self.acc_x_ave = 'Nan'
+            self.acc_y_ave = 'Nan'
+            self.acc_z_ave = 'Nan'
         self.pidata = pidata
         
 
@@ -160,7 +162,7 @@ if __name__ == '__main__':
                             if alertno > 6:   #今回のを含めて再起動4回目以上と思われる
                                 #アラート処理
                                 break
-                        alertlist.append(tagdata.nowtime, tagdata.tag_id)
+                        alertlist.append((tagdata.nowtime, tagdata.tag_id))
                         print(alertlist)
                     tagdata.write_to_csv(filename)
             
