@@ -64,35 +64,44 @@ def on_message(client, userdata, message):
 topicを受信したときに実行する
 """
 def on_message(client, userdata, message):
+    #時間計測
+    time_start = datetime.datetime.now()
+    print(time_start.strftime('%Y/%m/%d %H:%M:%S.%f'))
     nakami = message.payload
-    message_json = nakami.decode('utf-8')                #受信データはバイト列なのでそれを文字列に変換する
-    print (message_json)
+    print(nakami)
+    #message_json = message.payload
+    #message_json = nakami.decode('utf-8')                #受信データはバイト列なのでそれを文字列に変換する
+    #print(message_json)
     #print (type(message_json))
+    time_mid = datetime.datetime.now()
+    print(time_mid.strftime('%Y/%m/%d %H:%M:%S.%f'))
 
     with open(mqttlog_name, 'a', encoding='shift-jis',newline='') as f:
         
-        wdata = str(datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S.%f')[:-3]) + ',' + message_json
-        f.write(wdata + '\n')                        #すでにコンマ区切りされたデータなので単にwriteするだけ+改行
+        current_time = datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S.%f')[:-3]
+        f.write('\n' + current_time + ',')
+    time_3 = time_mid = datetime.datetime.now()
+    print(time_3.strftime('%Y/%m/%d %H:%M:%S.%f'))
+
+    with open(mqttlog_name, 'ab') as f:
+        f.write(nakami)
+
+    #終わり時間
+    time_finish = datetime.datetime.now()
+    print(time_finish.strftime('%Y/%m/%d %H:%M:%S.%f'))
+    print(time_finish - time_start)
+    #すでにコンマ区切りされたデータなので単にwriteするだけ+改行
     #message_dict=json.loads(message_json)
     #print(message_dict)
     #write_to_influxdb(message_dict)
-'''
-def my_removeprefix(s, prefix):
-    if s.startswith(prefix):
-        return s[len(prefix):]
-    else:
-        return s
 
-def my_removesuffix(s, suffix):
-    return s[:-len(suffix)] if s.endswith(suffix) else s
-'''
 
 if __name__ == '__main__':
     mqttlog_name = 'mqtt_' + datetime.datetime.now().strftime('%Y%m%d_%H%M%S') + '.csv'
 
     with open(mqttlog_name, 'a', encoding='shift-jis',newline='') as f:
         header =','.join(['time', 'data'])
-        f.write(header + '\n')                        #すでにコンマ区切りされたデータなので単にwriteするだけ+改行
+        f.write(header)                        #すでにコンマ区切りされたデータなので単にwriteするだけ+改行
 
     while 1:
         try:

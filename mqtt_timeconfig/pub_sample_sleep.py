@@ -79,6 +79,7 @@ if __name__ == '__main__':
             writeX(datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S.%f')[:-3] + ',' + pubno_4d)
             send_data = pubno_4d + ',aaaaa' + 'aaaaaaaaaa' + 'aaaaaaaaaa' + 'aaaaaaaaaa' + 'aaaaaaaaaa'        #str50文字
             client.publish(topic, send_data)
+            time.sleep(0.01)
         except KeyboardInterrupt:
             break
     
